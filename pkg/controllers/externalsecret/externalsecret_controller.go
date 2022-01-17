@@ -316,6 +316,9 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
 		return true
 	}
+	if !isSecretSynced(es) {
+		return true
+	}
 
 	// skip refresh if refresh interval is 0
 	if es.Spec.RefreshInterval.Duration == 0 && es.Status.SyncedResourceVersion != "" {
@@ -328,16 +331,16 @@ func shouldRefresh(es esv1alpha1.ExternalSecret) bool {
 }
 
 func shouldReconcile(es esv1alpha1.ExternalSecret) bool {
-	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
+	if es.Spec.Target.Immutable && isSecretSynced(es) {
 		return false
 	}
 	return true
 }
 
-func hasSyncedCondition(es esv1alpha1.ExternalSecret) bool {
+func isSecretSynced(es esv1alpha1.ExternalSecret) bool {
 	for _, condition := range es.Status.Conditions {
 		if condition.Reason == "SecretSynced" {
-			return true
+			return condition.status == v1.ConditionTrue
 		}
 	}
 	return false
